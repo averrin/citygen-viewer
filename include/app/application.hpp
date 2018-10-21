@@ -17,13 +17,13 @@ public:
   sf::RenderWindow *window;
   void processEvent(sf::Event event);
   int serve();
-  void drawMainWindow();
-                void updateMinimap();
+  void drawMinimap(sf::Sprite);
+  std::shared_ptr<sf::RenderTexture> drawMap();
+                // void updateMinimap();
   Logger &log = Logger::getInstance();
 
   sf::View minimap;
   sf::View fixed;
-  float zoom = 10.f;
   float scale = 1.f;
 };
 

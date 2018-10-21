@@ -5,12 +5,23 @@
 
 #include <libcolor/libcolor.hpp>
 
+#include <CGAL/Boolean_set_operations_2.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <list>
+
+typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+typedef Kernel::Point_2 Point_2;
+typedef CGAL::Polygon_2<Kernel> Polygon_2;
+typedef CGAL::Polygon_with_holes_2<Kernel> Polygon_with_holes_2;
+typedef std::list<Polygon_with_holes_2> Pwh_list_2;
+
 Application::Application(std::string app_name, std::string version)
     : APP_NAME(app_name), VERSION(version) {
   sf::ContextSettings settings;
   settings.antialiasingLevel = 8;
   ImGui::CreateContext();
 
+  ImGui::StyleColorsDark();
   ImGuiIO &io = ImGui::GetIO();
 
   // window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
@@ -19,31 +30,12 @@ Application::Application(std::string app_name, std::string version)
   window->setVerticalSyncEnabled(true);
   window->setFramerateLimit(60);
   ImGui::SFML::Init(*window);
-  updateMinimap();
-  fixed = window->getView(); // The 'fixed' view will never change
-
+  fixed = window->getView();
 
   window->resetGLStates();
 }
-void Application::updateMinimap() {
-  unsigned int size =
-      400; // The 'minimap' view will show a smaller picture of the map
-  minimap = sf::View(sf::FloatRect(
-      fixed.getCenter().x, fixed.getCenter().y, static_cast<float>(size),
-      static_cast<float>(window->getSize().y * size / window->getSize().x)));
-  minimap.setViewport(sf::FloatRect(
-      1.f - static_cast<float>(minimap.getSize().x) / window->getSize().x -
-          0.02f,
-      1.f - static_cast<float>(minimap.getSize().y) / window->getSize().y -
-          0.02f,
-      static_cast<float>(minimap.getSize().x) / window->getSize().x,
-      static_cast<float>(minimap.getSize().y) / window->getSize().y));
-  minimap.zoom(zoom);
-
-}
 
 void Application::processEvent(sf::Event event) {
-  ImGui::SFML::ProcessEvent(event);
   switch (event.type) {
   case sf::Event::KeyPressed:
     switch (event.key.code) {
@@ -63,11 +55,9 @@ void Application::processEvent(sf::Event event) {
       fixed.move(0.f, 20.f);
       break;
     case sf::Keyboard::Z:
-      fixed.zoom(1.2);
       scale *= 1.2;
       break;
     case sf::Keyboard::X:
-      fixed.zoom(0.8);
       scale *= 0.8;
       break;
     }
@@ -77,7 +67,6 @@ void Application::processEvent(sf::Event event) {
     break;
   case sf::Event::Resized:
     fixed.setSize(event.size.width * scale, event.size.height * scale);
-    updateMinimap();
     break;
   }
 }
@@ -86,52 +75,110 @@ float value = 1.f;
 int count = 25;
 float size = 100.f;
 
-void Application::drawMainWindow() {
-  ImGui::Begin(APP_NAME.c_str());
-  ImGui::SliderInt("Count", &count, 1, 200);
-  ImGui::SliderFloat("Size", &size, 4.f, 200.f);
-  ImGui::SliderFloat("Value", &value, 0.f, 1.f);
+void Application::drawMinimap(sf::Sprite map) {
+  ImGui::Begin("Minimap");
+
+  map.setTextureRect(sf::IntRect(0, map.getTexture()->getSize().y, map.getTexture()->getSize().x, -map.getTexture()->getSize().y));
+  ImGui::Image(map);
+  // ImGui::SliderInt("Count", &count, 1, 200);
+  // ImGui::SliderFloat("Size", &size, 4.f, 200.f);
+  ImGui::Text("\n");
+  ImGui::SliderFloat("Zoom", &scale, 0.05f, 5.f);
 
   ImGui::End();
 }
 
-std::shared_ptr<sf::RenderTexture> drawMap() {
+sf::ConvexShape toShape(Polygon_2 p) {
+    sf::ConvexShape polygon;
+    polygon.setPointCount(p.size());
+    int n = 0;
+    for (auto point : p.container()) {
+      polygon.setPoint(n, sf::Vector2f(CGAL::to_double(point.x()),
+                                       CGAL::to_double(point.y())));
+      n++;
+    }
+    return polygon;
+}
+
+sf::ConvexShape toShape(Polygon_with_holes_2 p) {
+  return toShape(p.outer_boundary());
+}
+
+std::shared_ptr<sf::RenderTexture> Application::drawMap() {
   auto tex = std::make_shared<sf::RenderTexture>();
+  tex->setSmooth(true);
   tex->create(2400, 1800);
 
   auto bgColor = sf::Color(23, 23, 23);
   tex->clear(bgColor);
 
-  float padding = size / 10;
-  auto yOffset = 0.f;
-  for (auto y = 0; y < count; y++) {
-    auto offset = 0.f;
-    auto startColor = Color::fromWebName("red");
-    startColor.saturation(1 - y / float(count));
-    startColor.value(value);
-    for (auto i = 0; i < count; i++) {
+  Polygon_2 P;
+  P.push_back(Point_2(0, 0));
+  P.push_back(Point_2(50, 0));
+  P.push_back(Point_2(35, 15));
+  P.push_back(Point_2(25, 5));
+  P.push_back(Point_2(15, 15));
+
+  Polygon_2 Q;
+  Q.push_back(Point_2(0, 20));
+  Q.push_back(Point_2(15, 5));
+  Q.push_back(Point_2(25, 15));
+  Q.push_back(Point_2(35, 5));
+  Q.push_back(Point_2(50, 20));
+
+  auto localScale = 10.f * scale;
+  auto padding = 100.f * scale;
+  Polygon_with_holes_2 unionR;
+  if (CGAL::join(P, Q, unionR)) {
+    // if (! unionR.is_unbounded()) {
+    auto polygon = toShape(Q);
+    polygon.setScale(sf::Vector2f(localScale, localScale));
+    polygon.setFillColor(sf::Color::Red);
+    // polygon.setOutlineColor(sf::Color::White);
+    // polygon.setOutlineThickness(0.1);
+    polygon.setPosition(sf::Vector2f(padding, padding));
+    tex->draw(polygon);
+
+    polygon = toShape(P);
+    polygon.setScale(sf::Vector2f(localScale, localScale));
+    polygon.setFillColor(sf::Color::Blue);
+    // polygon.setOutlineColor(sf::Color::Black);
+    // polygon.setOutlineThickness(0.1);
+    polygon.setPosition(sf::Vector2f(padding, padding));
+    tex->draw(polygon);
+
+    polygon = toShape(unionR);
+    polygon.setScale(sf::Vector2f(localScale, localScale));
+    polygon.setFillColor(sf::Color::White);
+    polygon.setPosition(sf::Vector2f(padding, padding));
+    tex->draw(polygon);
+
+    for (auto hit = unionR.holes_begin(); hit != unionR.holes_end(); ++hit) {
+      polygon = toShape(*hit);
+      polygon.setScale(sf::Vector2f(localScale, localScale));
+      polygon.setFillColor(bgColor);
+      polygon.setPosition(sf::Vector2f(padding, padding));
+      tex->draw(polygon);
+    }
+
+    Pwh_list_2                  intR;
+
+    CGAL::intersection (P, Q, std::back_inserter(intR));
+    for (auto ip : intR) {
+      polygon = toShape(ip);
+      polygon.setScale(sf::Vector2f(localScale, localScale));
+
+      auto startColor = Color::fromWebName("red");
+      startColor.blend(Color::fromWebName("blue"), 0.3);
       auto sfColor =
           sf::Color(startColor.red(), startColor.green(), startColor.blue());
-
-      sf::VertexArray quad(sf::Quads, 4);
-
-      quad[0].position = sf::Vector2f(padding + offset, padding + yOffset);
-      quad[0].color = sfColor;
-      quad[1].position =
-          sf::Vector2f(padding + size + offset, padding + yOffset);
-      quad[1].color = sfColor;
-      quad[2].position =
-          sf::Vector2f(padding + size + offset, padding + size + yOffset);
-      quad[2].color = sfColor;
-      quad[3].position =
-          sf::Vector2f(padding + offset, padding + size + yOffset);
-      quad[3].color = sfColor;
-
-      tex->draw(quad);
-      offset += size + padding;
-      startColor.hue(startColor.hue() + 360.f / count);
+      polygon.setFillColor(sfColor);
+      // polygon.setOutlineColor(sfColor);
+      // polygon.setOutlineThickness(1);
+      polygon.setPosition(sf::Vector2f(padding, padding));
+      tex->draw(polygon);
     }
-    yOffset += size + padding;
+
   }
 
   return tex;
@@ -143,6 +190,7 @@ int Application::serve() {
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
+      ImGui::SFML::ProcessEvent(event);
       processEvent(event);
     }
 
@@ -155,23 +203,30 @@ int Application::serve() {
     sf::Sprite sprite(texture->getTexture());
     window->draw(sprite);
 
+    sf::RenderTexture mTexture;
+    mTexture.create(texture->getSize().x * scale, texture->getSize().y * scale);
+
+    mTexture.clear(bgColor);
+    mTexture.draw(sprite);
+
     sf::RectangleShape frame;
     int t = 20;
-    frame.setPosition(fixed.getCenter().x - window->getSize().x * scale / 2,
-                      fixed.getCenter().y - window->getSize().y * scale / 2);
-    frame.setSize(
-        sf::Vector2f(fixed.getViewport().width * window->getSize().x * scale + t,
-                     fixed.getViewport().height * window->getSize().y * scale + t));
+    frame.setPosition((fixed.getCenter().x - window->getSize().x / 2),
+                      (fixed.getCenter().y - window->getSize().y / 2));
+    frame.setSize(sf::Vector2f(
+        fixed.getViewport().width * window->getSize().x,
+        fixed.getViewport().height * window->getSize().y));
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
-    texture->draw(frame);
-    texture->display();
-    window->setView(minimap); // Draw minimap
-    window->draw(sprite);
+    mTexture.draw(frame);
+    mTexture.display();
+    sf::Sprite mSprite(mTexture.getTexture());
 
+
+    mSprite.setScale(480.f/mTexture.getSize().x, 360.f/mTexture.getSize().y);
     ImGui::SFML::Update(*window, deltaClock.restart());
-    drawMainWindow();
+    drawMinimap(mSprite);
     ImGui::SFML::Render(*window);
     window->display();
   }

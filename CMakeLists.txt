@@ -32,6 +32,25 @@ include_directories(${SFML_INCLUDE_DIR})
 find_path(IMLIB_SOURCE imgui.h)
 include_directories(${IMLIB_SOURCE})
 
+find_package( CGAL QUIET COMPONENTS  )
+
+if ( NOT CGAL_FOUND )
+
+  message(STATUS "This project requires the CGAL library, and will not be compiled.")
+  return()
+
+endif()
+
+include( ${CGAL_USE_FILE} )
+
+find_package( Boost REQUIRED )
+
+if ( NOT Boost_FOUND )
+  message(STATUS "This project requires the Boost library, and will not be compiled.")
+  return()
+endif()
+
+
 file(GLOB SOURCE "src/*.cpp")
 add_executable(${EXE_NAME}
   ${BACKWARD_ENABLE}
@@ -41,6 +60,10 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/src/main.cpp
   )
 add_backward(${EXE_NAME})
+add_to_cached_list( CGAL_EXECUTABLE_TARGETS citygen-viewer )
+
 
 target_link_libraries(${EXE_NAME} PRIVATE X11 FLAC UDev OpenAL imgui::imgui imgui-sfml fmt::fmt fmt::fmt-header-only
-  sfml-system sfml-window sfml-graphics OpenGL GL)
+  sfml-system sfml-window sfml-graphics OpenGL GL
+  ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES}
+  )
