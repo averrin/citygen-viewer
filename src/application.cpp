@@ -32,6 +32,9 @@ Application::Application(std::string app_name, std::string version)
   ImGui::SFML::Init(*window);
   fixed = window->getView();
 
+  gen = std::make_shared<R::Generator>();
+  buildingGenerator = std::make_shared<BuildingGenerator>(gen->seed);
+
   window->resetGLStates();
 }
 
@@ -60,6 +63,10 @@ void Application::processEvent(sf::Event event) {
     case sf::Keyboard::X:
       scale *= 0.8;
       break;
+    case sf::Keyboard::R:
+      damaged = true;
+      gen->updateSeed();
+      break;
     }
     break;
   case sf::Event::Closed:
@@ -67,41 +74,45 @@ void Application::processEvent(sf::Event event) {
     break;
   case sf::Event::Resized:
     fixed.setSize(event.size.width * scale, event.size.height * scale);
+    // TODO: fix minimap frame
     break;
   }
 }
 
-float value = 1.f;
-int count = 25;
-float size = 100.f;
-
 void Application::drawMinimap(sf::Sprite map) {
   ImGui::Begin("Minimap");
 
-  map.setTextureRect(sf::IntRect(0, map.getTexture()->getSize().y, map.getTexture()->getSize().x, -map.getTexture()->getSize().y));
+  map.setTextureRect(sf::IntRect(0, map.getTexture()->getSize().y,
+                                 map.getTexture()->getSize().x,
+                                 -map.getTexture()->getSize().y));
   ImGui::Image(map);
   // ImGui::SliderInt("Count", &count, 1, 200);
   // ImGui::SliderFloat("Size", &size, 4.f, 200.f);
   ImGui::Text("\n");
-  ImGui::SliderFloat("Zoom", &scale, 0.05f, 5.f);
+  ImGui::SliderFloat("Zoom", &scale, 0.05f, 3.f);
 
   ImGui::End();
 }
 
 sf::ConvexShape toShape(Polygon_2 p) {
-    sf::ConvexShape polygon;
-    polygon.setPointCount(p.size());
-    int n = 0;
-    for (auto point : p.container()) {
-      polygon.setPoint(n, sf::Vector2f(CGAL::to_double(point.x()),
-                                       CGAL::to_double(point.y())));
-      n++;
-    }
-    return polygon;
+  sf::ConvexShape polygon;
+  polygon.setPointCount(p.size());
+  int n = 0;
+  for (auto point : p.container()) {
+    polygon.setPoint(n, sf::Vector2f(CGAL::to_double(point.x()),
+                                     CGAL::to_double(point.y())));
+    n++;
+  }
+  return polygon;
 }
 
 sf::ConvexShape toShape(Polygon_with_holes_2 p) {
   return toShape(p.outer_boundary());
+}
+
+sf::Color colorByName(std::string name) {
+  auto startColor = Color::fromWebName(name);
+  return sf::Color(startColor.red(), startColor.green(), startColor.blue());
 }
 
 std::shared_ptr<sf::RenderTexture> Application::drawMap() {
@@ -112,75 +123,33 @@ std::shared_ptr<sf::RenderTexture> Application::drawMap() {
   auto bgColor = sf::Color(23, 23, 23);
   tex->clear(bgColor);
 
-  Polygon_2 P;
-  P.push_back(Point_2(0, 0));
-  P.push_back(Point_2(50, 0));
-  P.push_back(Point_2(35, 15));
-  P.push_back(Point_2(25, 5));
-  P.push_back(Point_2(15, 15));
+  auto localScale = 8.f * scale;
+  auto padding = 120.f * scale;
 
-  Polygon_2 Q;
-  Q.push_back(Point_2(0, 20));
-  Q.push_back(Point_2(15, 5));
-  Q.push_back(Point_2(25, 15));
-  Q.push_back(Point_2(35, 5));
-  Q.push_back(Point_2(50, 20));
+  for (auto i = 0; i < 8; i++) {
+    for (auto n = 0; n < 8; n++) {
 
-  auto localScale = 10.f * scale;
-  auto padding = 100.f * scale;
-  Polygon_with_holes_2 unionR;
-  if (CGAL::join(P, Q, unionR)) {
-    // if (! unionR.is_unbounded()) {
-    auto polygon = toShape(Q);
-    polygon.setScale(sf::Vector2f(localScale, localScale));
-    polygon.setFillColor(sf::Color::Red);
-    // polygon.setOutlineColor(sf::Color::White);
-    // polygon.setOutlineThickness(0.1);
-    polygon.setPosition(sf::Vector2f(padding, padding));
-    tex->draw(polygon);
+      auto b = buildingGenerator->randomBuilding();
 
-    polygon = toShape(P);
-    polygon.setScale(sf::Vector2f(localScale, localScale));
-    polygon.setFillColor(sf::Color::Blue);
-    // polygon.setOutlineColor(sf::Color::Black);
-    // polygon.setOutlineThickness(0.1);
-    polygon.setPosition(sf::Vector2f(padding, padding));
-    tex->draw(polygon);
-
-    polygon = toShape(unionR);
-    polygon.setScale(sf::Vector2f(localScale, localScale));
-    polygon.setFillColor(sf::Color::White);
-    polygon.setPosition(sf::Vector2f(padding, padding));
-    tex->draw(polygon);
-
-    for (auto hit = unionR.holes_begin(); hit != unionR.holes_end(); ++hit) {
-      polygon = toShape(*hit);
+      auto polygon = toShape(b);
       polygon.setScale(sf::Vector2f(localScale, localScale));
-      polygon.setFillColor(bgColor);
-      polygon.setPosition(sf::Vector2f(padding, padding));
+      polygon.setFillColor(colorByName("ivory"));
+      // polygon.setFillColor(sf::Color::Transparent);
+      polygon.setOutlineColor(sf::Color::Red);
+      polygon.setOutlineThickness(0.2);
+      polygon.setPosition(sf::Vector2f(padding * (i + 1), padding * (n + 1)));
       tex->draw(polygon);
+
+      for (auto point : b.outer_boundary().container()) {
+
+        sf::CircleShape site(2.f);
+        site.setFillColor(sf::Color::Green);
+        site.setPosition(sf::Vector2f(CGAL::to_double(point.x()) * localScale + padding * (i + 1),
+                                      CGAL::to_double(point.y()) * localScale + padding * (n + 1)));
+        tex->draw(site);
+      }
     }
-
-    Pwh_list_2                  intR;
-
-    CGAL::intersection (P, Q, std::back_inserter(intR));
-    for (auto ip : intR) {
-      polygon = toShape(ip);
-      polygon.setScale(sf::Vector2f(localScale, localScale));
-
-      auto startColor = Color::fromWebName("red");
-      startColor.blend(Color::fromWebName("blue"), 0.3);
-      auto sfColor =
-          sf::Color(startColor.red(), startColor.green(), startColor.blue());
-      polygon.setFillColor(sfColor);
-      // polygon.setOutlineColor(sfColor);
-      // polygon.setOutlineThickness(1);
-      polygon.setPosition(sf::Vector2f(padding, padding));
-      tex->draw(polygon);
-    }
-
   }
-
   return tex;
 }
 
@@ -198,7 +167,11 @@ int Application::serve() {
     auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
 
-    auto texture = drawMap();
+    if (damaged) {
+      cache = drawMap();
+      damaged = false;
+    }
+    auto texture = cache;
     texture->display();
     sf::Sprite sprite(texture->getTexture());
     window->draw(sprite);
@@ -213,9 +186,9 @@ int Application::serve() {
     int t = 20;
     frame.setPosition((fixed.getCenter().x - window->getSize().x / 2),
                       (fixed.getCenter().y - window->getSize().y / 2));
-    frame.setSize(sf::Vector2f(
-        fixed.getViewport().width * window->getSize().x,
-        fixed.getViewport().height * window->getSize().y));
+    frame.setSize(
+        sf::Vector2f(fixed.getViewport().width * window->getSize().x,
+                     fixed.getViewport().height * window->getSize().y));
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
@@ -223,8 +196,8 @@ int Application::serve() {
     mTexture.display();
     sf::Sprite mSprite(mTexture.getTexture());
 
-
-    mSprite.setScale(480.f/mTexture.getSize().x, 360.f/mTexture.getSize().y);
+    mSprite.setScale(480.f / mTexture.getSize().x,
+                     360.f / mTexture.getSize().y);
     ImGui::SFML::Update(*window, deltaClock.restart());
     drawMinimap(mSprite);
     ImGui::SFML::Render(*window);

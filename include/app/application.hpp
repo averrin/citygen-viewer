@@ -5,6 +5,9 @@
 #include <string>
 
 #include <liblog/liblog.hpp>
+#include <librandom/random.hpp>
+
+#include <citygen/building.hpp>
 
 class Application {
 public:
@@ -25,6 +28,11 @@ public:
   sf::View minimap;
   sf::View fixed;
   float scale = 1.f;
+  bool damaged = true;
+std::shared_ptr<sf::RenderTexture> cache;
+std::shared_ptr<R::Generator> gen;
+std::shared_ptr<BuildingGenerator> buildingGenerator;
+
 };
 
 #endif // __APPLICATION_H_
