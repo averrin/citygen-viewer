@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_TOOLCHAIN_FILE "../vcpkg/scripts/buildsystems/vcpkg.cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
-project(siuis)
+project(citygen-viewer)
 set(PROJECT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 set( EXE_NAME ${PROJECT_NAME} )
 
