@@ -18,12 +18,13 @@ public:
   void processEvent(sf::Event event);
   int serve();
   void drawMainWindow();
+                void updateMinimap();
   Logger &log = Logger::getInstance();
 
   sf::View minimap;
   sf::View fixed;
-  sf::RectangleShape miniback;
   float zoom = 10.f;
+  float scale = 1.f;
 };
 
 #endif // __APPLICATION_H_

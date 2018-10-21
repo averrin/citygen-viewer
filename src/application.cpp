@@ -19,15 +19,17 @@ Application::Application(std::string app_name, std::string version)
   window->setVerticalSyncEnabled(true);
   window->setFramerateLimit(60);
   ImGui::SFML::Init(*window);
-
+  updateMinimap();
   fixed = window->getView(); // The 'fixed' view will never change
-  sf::View standard =
-      fixed; // The 'standard' view will be the one that gets always displayed
 
+
+  window->resetGLStates();
+}
+void Application::updateMinimap() {
   unsigned int size =
       400; // The 'minimap' view will show a smaller picture of the map
   minimap = sf::View(sf::FloatRect(
-      standard.getCenter().x, standard.getCenter().y, static_cast<float>(size),
+      fixed.getCenter().x, fixed.getCenter().y, static_cast<float>(size),
       static_cast<float>(window->getSize().y * size / window->getSize().x)));
   minimap.setViewport(sf::FloatRect(
       1.f - static_cast<float>(minimap.getSize().x) / window->getSize().x -
@@ -38,14 +40,6 @@ Application::Application(std::string app_name, std::string version)
       static_cast<float>(minimap.getSize().y) / window->getSize().y));
   minimap.zoom(zoom);
 
-  miniback.setPosition(minimap.getViewport().left * window->getSize().x - 5,
-                       minimap.getViewport().top * window->getSize().y - 5);
-  miniback.setSize(
-      sf::Vector2f(minimap.getViewport().width * window->getSize().x + 10,
-                   minimap.getViewport().height * window->getSize().y + 10));
-  miniback.setFillColor(sf::Color(160, 8, 8));
-
-  window->resetGLStates();
 }
 
 void Application::processEvent(sf::Event event) {
@@ -68,10 +62,22 @@ void Application::processEvent(sf::Event event) {
     case sf::Keyboard::Down:
       fixed.move(0.f, 20.f);
       break;
+    case sf::Keyboard::Z:
+      fixed.zoom(1.2);
+      scale *= 1.2;
+      break;
+    case sf::Keyboard::X:
+      fixed.zoom(0.8);
+      scale *= 0.8;
+      break;
     }
     break;
   case sf::Event::Closed:
     window->close();
+    break;
+  case sf::Event::Resized:
+    fixed.setSize(event.size.width * scale, event.size.height * scale);
+    updateMinimap();
     break;
   }
 }
@@ -151,11 +157,11 @@ int Application::serve() {
 
     sf::RectangleShape frame;
     int t = 20;
-    frame.setPosition(fixed.getCenter().x - window->getSize().x / 2,
-                      fixed.getCenter().y - window->getSize().y / 2);
+    frame.setPosition(fixed.getCenter().x - window->getSize().x * scale / 2,
+                      fixed.getCenter().y - window->getSize().y * scale / 2);
     frame.setSize(
-        sf::Vector2f(fixed.getViewport().width * window->getSize().x + t,
-                     fixed.getViewport().height * window->getSize().y + t));
+        sf::Vector2f(fixed.getViewport().width * window->getSize().x * scale + t,
+                     fixed.getViewport().height * window->getSize().y * scale + t));
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
