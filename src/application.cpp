@@ -9,6 +9,8 @@
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <list>
 
+#include <Thor/Shapes/ConcaveShape.hpp>
+
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef Kernel::Point_2 Point_2;
 typedef CGAL::Polygon_2<Kernel> Polygon_2;
@@ -94,8 +96,8 @@ void Application::drawMinimap(sf::Sprite map) {
   ImGui::End();
 }
 
-sf::ConvexShape toShape(Polygon_2 p) {
-  sf::ConvexShape polygon;
+thor::ConcaveShape toShape(Polygon_2 p) {
+  thor::ConcaveShape polygon;
   polygon.setPointCount(p.size());
   int n = 0;
   for (auto point : p.container()) {
@@ -106,7 +108,7 @@ sf::ConvexShape toShape(Polygon_2 p) {
   return polygon;
 }
 
-sf::ConvexShape toShape(Polygon_with_holes_2 p) {
+thor::ConcaveShape toShape(Polygon_with_holes_2 p) {
   return toShape(p.outer_boundary());
 }
 

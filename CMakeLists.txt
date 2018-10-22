@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_TOOLCHAIN_FILE "../vcpkg/scripts/buildsystems/vcpkg.cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
@@ -64,6 +64,6 @@ add_to_cached_list( CGAL_EXECUTABLE_TARGETS citygen-viewer )
 
 
 target_link_libraries(${EXE_NAME} PRIVATE X11 FLAC UDev OpenAL imgui::imgui imgui-sfml fmt::fmt fmt::fmt-header-only
-  sfml-system sfml-window sfml-graphics OpenGL GL
+  sfml-system sfml-window sfml-graphics OpenGL GL thor
   ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES}
   )
