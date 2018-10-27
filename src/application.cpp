@@ -153,7 +153,7 @@ void Application::drawMinimap(sf::Sprite map) {
 std::shared_ptr<sf::RenderTexture> Application::drawMap() {
   auto tex = std::make_shared<sf::RenderTexture>();
   tex->setSmooth(true);
-  tex->create(2400, 1800);
+  tex->create(2400 * scale, 1800 * scale);
 
   auto bgColor = sf::Color(23, 23, 23);
   tex->clear(bgColor);
@@ -173,7 +173,6 @@ int Application::serve() {
       processEvent(event);
     }
 
-    // fixed.setRotation(rotation);
     window->setView(fixed);
     auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
@@ -185,16 +184,18 @@ int Application::serve() {
     auto texture = cache;
     texture->display();
     sf::Sprite sprite(texture->getTexture());
-    // sprite.setOrigin(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
-    // sprite.setRotation(rotation);
-    // sprite.setOrigin(sf::Vector2f(0, 0));
+    //TODO: rotate from center
+    sprite.setOrigin(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
+    sprite.setRotation(rotation);
+    sprite.setOrigin(sf::Vector2f(0, 0));
     window->draw(sprite);
 
     sf::RenderTexture mTexture;
-    mTexture.create(texture->getSize().x * scale, texture->getSize().y * scale);
+    mTexture.create(texture->getSize().x, texture->getSize().y);
 
     mTexture.clear(bgColor);
-    mTexture.draw(sprite);
+    sf::Sprite oSprite(texture->getTexture());
+    mTexture.draw(oSprite);
 
     sf::RectangleShape frame;
     int t = 20;
@@ -206,7 +207,9 @@ int Application::serve() {
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
-    // frame.setRotation(rotation);
+    frame.setOrigin(sf::Vector2f(frame.getSize().x/2, frame.getSize().y/2));
+    frame.setRotation(-rotation);
+    frame.setOrigin(sf::Vector2f(0, 0));
     mTexture.draw(frame);
     mTexture.display();
     sf::Sprite mSprite(mTexture.getTexture());
