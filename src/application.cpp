@@ -58,6 +58,14 @@ void Application::processEvent(sf::Event event) {
       damaged = true;
       scale *= 0.8;
       break;
+    case sf::Keyboard::K:
+      damaged = true;
+      rotation -= 5;
+      break;
+    case sf::Keyboard::L:
+      damaged = true;
+      rotation += 5;
+      break;
     case sf::Keyboard::R:
       gen->updateSeed();
       map = cityGenerator->createMap();
@@ -165,6 +173,7 @@ int Application::serve() {
       processEvent(event);
     }
 
+    // fixed.setRotation(rotation);
     window->setView(fixed);
     auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
@@ -176,6 +185,9 @@ int Application::serve() {
     auto texture = cache;
     texture->display();
     sf::Sprite sprite(texture->getTexture());
+    // sprite.setOrigin(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
+    // sprite.setRotation(rotation);
+    // sprite.setOrigin(sf::Vector2f(0, 0));
     window->draw(sprite);
 
     sf::RenderTexture mTexture;
@@ -194,12 +206,15 @@ int Application::serve() {
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
+    // frame.setRotation(rotation);
     mTexture.draw(frame);
     mTexture.display();
     sf::Sprite mSprite(mTexture.getTexture());
 
     mSprite.setScale(480.f / mTexture.getSize().x,
                      360.f / mTexture.getSize().y);
+    // sprite.setOrigin(sf::Vector2f(mTexture.getSize().x/2, mTexture.getSize().y/2));
+    // mSprite.setRotation(rotation);
     ImGui::SFML::Update(*window, deltaClock.restart());
     drawMinimap(mSprite);
     ImGui::SFML::Render(*window);

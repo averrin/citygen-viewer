@@ -31,6 +31,7 @@ public:
   sf::View minimap;
   sf::View fixed;
   float scale = 1.f;
+  float rotation = 0.f;
   bool damaged = true;
   std::shared_ptr<sf::RenderTexture> cache;
   std::shared_ptr<R::Generator> gen;

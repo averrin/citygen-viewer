@@ -6,6 +6,7 @@
 #include <fmt/format.h>
 #include <list>
 #include <memory>
+#include <cmath>
 
 #include <librandom/random.hpp>
 
@@ -15,8 +16,8 @@ namespace CityGen {
 
 class Building {
 public:
-  int x;
-  int y;
+  float x;
+  float y;
   Polygon_with_holes polygon;
   Point center;
 };
@@ -29,9 +30,9 @@ public:
     gen = std::make_shared<R::Generator>();
     gen->setSeed(seed);
   }
-  Polygon randomQuad(int dx = 0, int dy = 0) {
-    auto w = gen->R(2, 10);
-    auto h = gen->R(2, 10);
+  Polygon randomQuad(float dx = 0, float dy = 0) {
+    auto w = gen->R(2.f, 10.f);
+    auto h = gen->R(2.f, 10.f);
     Polygon Q;
 
     Q.push_back(Point(dx, dy));
@@ -44,6 +45,35 @@ public:
     }
     return Q;
   }
+
+  Polygon distort(Polygon p, float min, float max) {
+    Polygon d;
+
+    for (auto point : p.container()) {
+      d.push_back(Point(
+                    abs(point.x() + gen->R(min, max)),
+                    abs(point.y() + gen->R(min, max))
+                  ));
+    }
+
+    return d;
+  }
+
+  Polygon align(Polygon p) {
+    Polygon d;
+    auto dx = p.bbox().xmin();
+    auto dy = p.bbox().ymin();
+
+    for (auto point : p.container()) {
+      d.push_back(Point(
+                    point.x() - dx,
+                    point.y() - dy
+                  ));
+    }
+
+    return d;
+
+    }
 
   Building randomBuilding(int mc = 5) {
     Building building;
@@ -61,7 +91,8 @@ public:
         i--;
       }
     }
-    building.polygon = Polygon_with_holes(q);
+    // q = distort(q, -1.5, 1.5);
+    building.polygon = Polygon_with_holes(align(q));
 
     building.center = Point(
         building.polygon.bbox().xmin() +
