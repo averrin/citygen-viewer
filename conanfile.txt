@@ -6,6 +6,8 @@ imgui/1.62@bincrafters/stable
 [options]
 sfml:graphics=True
 sfml:window=True
+sfml:shared=True
+sfml:audio=True
 
 [generators]
 cmake

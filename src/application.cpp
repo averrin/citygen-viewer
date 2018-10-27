@@ -1,21 +1,10 @@
-#include "app/application.hpp"
+#include <app/application.hpp>
+#include <app/utils.hpp>
 
 #include <imgui-sfml/imgui-SFML.h>
 #include <imgui.h>
 
-#include <libcolor/libcolor.hpp>
-
-#include <CGAL/Boolean_set_operations_2.h>
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <list>
-
 #include <Thor/Shapes/ConcaveShape.hpp>
-
-typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
-typedef Kernel::Point_2 Point_2;
-typedef CGAL::Polygon_2<Kernel> Polygon_2;
-typedef CGAL::Polygon_with_holes_2<Kernel> Polygon_with_holes_2;
-typedef std::list<Polygon_with_holes_2> Pwh_list_2;
 
 Application::Application(std::string app_name, std::string version)
     : APP_NAME(app_name), VERSION(version) {
@@ -35,7 +24,9 @@ Application::Application(std::string app_name, std::string version)
   fixed = window->getView();
 
   gen = std::make_shared<R::Generator>();
-  buildingGenerator = std::make_shared<BuildingGenerator>(gen->seed);
+  cityGenerator = std::make_shared<CityGen::Generator>(gen->seed);
+  map = cityGenerator->createMap();
+  drawableMap = std::make_shared<DrawableMap>(map);
 
   window->resetGLStates();
 }
@@ -60,14 +51,18 @@ void Application::processEvent(sf::Event event) {
       fixed.move(0.f, 20.f);
       break;
     case sf::Keyboard::Z:
+      damaged = true;
       scale *= 1.2;
       break;
     case sf::Keyboard::X:
+      damaged = true;
       scale *= 0.8;
       break;
     case sf::Keyboard::R:
-      damaged = true;
       gen->updateSeed();
+      map = cityGenerator->createMap();
+      drawableMap = std::make_shared<DrawableMap>(map);
+      damaged = true;
       break;
     }
     break;
@@ -96,26 +91,6 @@ void Application::drawMinimap(sf::Sprite map) {
   ImGui::End();
 }
 
-thor::ConcaveShape toShape(Polygon_2 p) {
-  thor::ConcaveShape polygon;
-  polygon.setPointCount(p.size());
-  int n = 0;
-  for (auto point : p.container()) {
-    polygon.setPoint(n, sf::Vector2f(CGAL::to_double(point.x()),
-                                     CGAL::to_double(point.y())));
-    n++;
-  }
-  return polygon;
-}
-
-thor::ConcaveShape toShape(Polygon_with_holes_2 p) {
-  return toShape(p.outer_boundary());
-}
-
-sf::Color colorByName(std::string name) {
-  auto startColor = Color::fromWebName(name);
-  return sf::Color(startColor.red(), startColor.green(), startColor.blue());
-}
 
 std::shared_ptr<sf::RenderTexture> Application::drawMap() {
   auto tex = std::make_shared<sf::RenderTexture>();
@@ -124,34 +99,9 @@ std::shared_ptr<sf::RenderTexture> Application::drawMap() {
 
   auto bgColor = sf::Color(23, 23, 23);
   tex->clear(bgColor);
+  drawableMap->setScale(scale);
+  tex->draw(*drawableMap);
 
-  auto localScale = 8.f * scale;
-  auto padding = 120.f * scale;
-
-  for (auto i = 0; i < 8; i++) {
-    for (auto n = 0; n < 8; n++) {
-
-      auto b = buildingGenerator->randomBuilding();
-
-      auto polygon = toShape(b);
-      polygon.setScale(sf::Vector2f(localScale, localScale));
-      polygon.setFillColor(colorByName("ivory"));
-      // polygon.setFillColor(sf::Color::Transparent);
-      polygon.setOutlineColor(sf::Color::Red);
-      polygon.setOutlineThickness(0.2);
-      polygon.setPosition(sf::Vector2f(padding * (i + 1), padding * (n + 1)));
-      tex->draw(polygon);
-
-      for (auto point : b.outer_boundary().container()) {
-
-        sf::CircleShape site(2.f);
-        site.setFillColor(sf::Color::Green);
-        site.setPosition(sf::Vector2f(CGAL::to_double(point.x()) * localScale + padding * (i + 1),
-                                      CGAL::to_double(point.y()) * localScale + padding * (n + 1)));
-        tex->draw(site);
-      }
-    }
-  }
   return tex;
 }
 

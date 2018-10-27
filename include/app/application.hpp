@@ -5,9 +5,12 @@
 #include <string>
 
 #include <liblog/liblog.hpp>
+using namespace LibLog;
 #include <librandom/random.hpp>
 
-#include <citygen/building.hpp>
+#include <citygen/generator.hpp>
+
+#include <app/drawableMap.hpp>
 
 class Application {
 public:
@@ -22,17 +25,18 @@ public:
   int serve();
   void drawMinimap(sf::Sprite);
   std::shared_ptr<sf::RenderTexture> drawMap();
-                // void updateMinimap();
+
   Logger &log = Logger::getInstance();
 
   sf::View minimap;
   sf::View fixed;
   float scale = 1.f;
   bool damaged = true;
-std::shared_ptr<sf::RenderTexture> cache;
-std::shared_ptr<R::Generator> gen;
-std::shared_ptr<BuildingGenerator> buildingGenerator;
-
+  std::shared_ptr<sf::RenderTexture> cache;
+  std::shared_ptr<R::Generator> gen;
+  std::shared_ptr<CityGen::Generator> cityGenerator;
+  std::shared_ptr<CityGen::Map> map;
+  std::shared_ptr<DrawableMap> drawableMap;
 };
 
 #endif // __APPLICATION_H_

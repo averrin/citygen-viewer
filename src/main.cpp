@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "app/application.hpp"
+#include <app/application.hpp>
 
 std::string VERSION = "0.0.1";
 std::string APP_NAME = "CityGen Viewer";
