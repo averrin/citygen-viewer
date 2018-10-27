@@ -62,14 +62,6 @@ public:
       }
     }
     building.polygon = Polygon_with_holes(q);
-    fmt::print(
-        "{} [{}, {}]\n", CGAL::to_double(q.area()),
-        building.polygon.bbox().xmin() +
-            (building.polygon.bbox().xmax() - building.polygon.bbox().xmin()) /
-                2,
-        building.polygon.bbox().ymin() +
-            (building.polygon.bbox().ymax() - building.polygon.bbox().ymin()) /
-                2);
 
     building.center = Point(
         building.polygon.bbox().xmin() +

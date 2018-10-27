@@ -37,6 +37,9 @@ public:
   std::shared_ptr<CityGen::Generator> cityGenerator;
   std::shared_ptr<CityGen::Map> map;
   std::shared_ptr<DrawableMap> drawableMap;
+
+  bool moving = false;
+  sf::Vector2f oldPos;
 };
 
 #endif // __APPLICATION_H_

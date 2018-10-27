@@ -73,6 +73,57 @@ void Application::processEvent(sf::Event event) {
     fixed.setSize(event.size.width * scale, event.size.height * scale);
     // TODO: fix minimap frame
     break;
+  case sf::Event::MouseButtonPressed:
+    // Mouse button is pressed, get the position and set moving as active
+    if (event.mouseButton.button == 0) {
+      moving = true;
+      oldPos = window->mapPixelToCoords(
+          sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+    }
+    break;
+  case sf::Event::MouseButtonReleased:
+    // Mouse button is released, no longer move
+    if (event.mouseButton.button == 0) {
+      moving = false;
+    }
+    break;
+  case sf::Event::MouseMoved: {
+    // Ignore mouse movement unless a button is pressed (see above)
+    if (!moving)
+      break;
+    // Determine the new position in world coordinates
+    const sf::Vector2f newPos = window->mapPixelToCoords(
+        sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+    // Determine how the cursor has moved
+    // Swap these to invert the movement direction
+    const sf::Vector2f deltaPos = oldPos - newPos;
+
+    // Move our view accordingly and update the window
+    fixed.setCenter(fixed.getCenter() + deltaPos);
+    window->setView(fixed);
+
+    // Save the new position as the old one
+    // We're recalculating this, since we've changed the view
+    oldPos = window->mapPixelToCoords(
+        sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+    break;
+  }
+  case sf::Event::MouseWheelScrolled:
+    // Ignore the mouse wheel unless we're not moving
+    if (moving)
+      break;
+
+    // Determine the scroll direction and adjust the zoom level
+    // Again, you can swap these to invert the direction
+    if (event.mouseWheelScroll.delta <= -1) {
+      damaged = true;
+      scale *= 1.1;
+    } else if (event.mouseWheelScroll.delta >= 1) {
+      damaged = true;
+      scale *= 0.9;
+    }
+
+    break;
   }
 }
 
@@ -90,7 +141,6 @@ void Application::drawMinimap(sf::Sprite map) {
 
   ImGui::End();
 }
-
 
 std::shared_ptr<sf::RenderTexture> Application::drawMap() {
   auto tex = std::make_shared<sf::RenderTexture>();
