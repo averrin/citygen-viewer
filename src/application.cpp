@@ -187,7 +187,8 @@ int Application::serve() {
     //TODO: rotate from center
     sprite.setOrigin(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
     sprite.setRotation(rotation);
-    sprite.setOrigin(sf::Vector2f(0, 0));
+    sprite.move(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
+    // sprite.setOrigin(sf::Vector2f(0, 0));
     window->draw(sprite);
 
     sf::RenderTexture mTexture;
