@@ -210,7 +210,8 @@ int Application::serve() {
     frame.setOutlineColor(sf::Color(200, 200, 200));
     frame.setOrigin(sf::Vector2f(frame.getSize().x/2, frame.getSize().y/2));
     frame.setRotation(-rotation);
-    frame.setOrigin(sf::Vector2f(0, 0));
+    frame.move(sf::Vector2f(frame.getSize().x/2, frame.getSize().y/2));
+    // frame.setOrigin(sf::Vector2f(0, 0));
     mTexture.draw(frame);
     mTexture.display();
     sf::Sprite mSprite(mTexture.getTexture());
