@@ -19,6 +19,8 @@ public:
   std::string APP_NAME;
   std::string VERSION;
 
+  int seed;
+
   sf::RenderWindow *window;
   sf::ContextSettings settings;
 

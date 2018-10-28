@@ -27,6 +27,7 @@ Application::Application(std::string app_name, std::string version)
   fixed.setCenter(2400 / 2, 1800 / 2);
 
   gen = std::make_shared<R::Generator>();
+  seed = gen->seed;
   cityGenerator = std::make_shared<CityGen::Generator>(gen);
   map = cityGenerator->createMap(800, 600);
   drawableMap = std::make_shared<DrawableMap>(map);
@@ -71,6 +72,7 @@ void Application::processEvent(sf::Event event) {
       break;
     case sf::Keyboard::R:
       gen->updateSeed();
+      seed = gen->seed;
       map = cityGenerator->createMap(800, 600);
       drawableMap = std::make_shared<DrawableMap>(map);
       damaged = true;
@@ -238,6 +240,13 @@ int Application::serve() {
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)\n",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+    if (ImGui::InputInt("Seed", &seed)) {
+      gen->setSeed(seed);
+      map = cityGenerator->createMap(800, 600);
+      drawableMap = std::make_shared<DrawableMap>(map);
+      damaged = true;
+    }
 
     ImGui::End();
     ImGui::SFML::Render(*window);

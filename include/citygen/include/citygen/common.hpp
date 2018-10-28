@@ -29,10 +29,21 @@ public:
 
 class WithRandomGenerator {
 protected:
+  CGAL::Random cgalRandom;
   std::shared_ptr<R::Generator> gen;
+  int lastSeed;
+
+  void updateSeed() {
+    if (gen->seed != lastSeed) {
+      cgalRandom = CGAL::Random(gen->seed);
+      lastSeed = gen->seed;
+    }
+  }
 
 public:
-  WithRandomGenerator(std::shared_ptr<R::Generator> g) : gen(g) {}
+  WithRandomGenerator(std::shared_ptr<R::Generator> g) : gen(g) {
+    cgalRandom = CGAL::Random(gen->seed);
+  }
 };
 } // namespace CityGen
 

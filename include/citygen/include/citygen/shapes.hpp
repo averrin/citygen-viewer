@@ -6,7 +6,7 @@ namespace CityGen {
 class Shapes : public WithRandomGenerator {
 public:
   Shapes(std::shared_ptr<R::Generator> g) : WithRandomGenerator(g) {
-      }
+    }
   static bool checkInside(Point pt, Polygon p) {
     switch (
         CGAL::bounded_side_2(p.container().begin(), p.container().end(), pt)) {
@@ -64,11 +64,12 @@ public:
     return t;
   }
 
-  static Polygon randomPolygon(int c, float origin = 5) {
+  Polygon randomPolygon(int c, float origin = 5) {
+      updateSeed();
     Polygon p;
 
     CGAL::random_convex_set_2(c, std::back_inserter(p),
-                              Point_generator(origin));
+                              Point_generator(origin, cgalRandom));
     return p;
   }
 

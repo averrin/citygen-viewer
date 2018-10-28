@@ -10,7 +10,7 @@ std::shared_ptr<Map> Generator::createMap(float width, float height) {
   city.polygon = Polygon_with_holes(
     Shapes::centrate(
       Shapes::scale(
-        Shapes::randomPolygon(
+        shapes->randomPolygon(
           gen->R(7, 12)
         ),
       30),
