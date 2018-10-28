@@ -8,6 +8,8 @@
 
 class DrawableMap : public sf::Drawable {
   float scale;
+  float rotation;
+  sf::Vector2f origin;
   std::shared_ptr<CityGen::Map> map;
 
 public:
@@ -15,7 +17,12 @@ public:
   DrawableMap(std::shared_ptr<CityGen::Map>);
   void setScale(float s) {
     scale = s;
-    update();
+  }
+  void setRotation(float r) {
+    rotation = r;
+  }
+  void setOrigin(sf::Vector2f o) {
+    origin = o;
   }
   void update();
 

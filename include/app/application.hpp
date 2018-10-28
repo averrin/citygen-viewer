@@ -5,7 +5,6 @@
 #include <string>
 
 #include <liblog/liblog.hpp>
-using namespace LibLog;
 #include <librandom/random.hpp>
 
 #include <citygen/generator.hpp>
@@ -21,12 +20,14 @@ public:
   std::string VERSION;
 
   sf::RenderWindow *window;
+  sf::ContextSettings settings;
+
   void processEvent(sf::Event event);
   int serve();
   void drawMinimap(sf::Sprite);
   std::shared_ptr<sf::RenderTexture> drawMap();
 
-  Logger &log = Logger::getInstance();
+  LibLog::Logger &log = LibLog::Logger::getInstance();
 
   sf::View minimap;
   sf::View fixed;

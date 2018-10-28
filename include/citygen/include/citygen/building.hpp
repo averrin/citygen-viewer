@@ -3,10 +3,10 @@
 
 #include <CGAL/Boolean_set_operations_2.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <cmath>
 #include <fmt/format.h>
 #include <list>
 #include <memory>
-#include <cmath>
 
 #include <librandom/random.hpp>
 
@@ -19,6 +19,7 @@ public:
   float x;
   float y;
   Polygon_with_holes polygon;
+  Polygon plot;
   Point center;
 };
 
@@ -30,6 +31,72 @@ public:
     gen = std::make_shared<R::Generator>();
     gen->setSeed(seed);
   }
+
+  bool checkInside(Point pt, Polygon p) {
+    switch (
+        CGAL::bounded_side_2(p.container().begin(), p.container().end(), pt)) {
+    case CGAL::ON_BOUNDED_SIDE:
+      return true;
+      break;
+    case CGAL::ON_BOUNDARY:
+      return true;
+      break;
+    case CGAL::ON_UNBOUNDED_SIDE:
+      return false;
+      break;
+    }
+    return false;
+  }
+
+  bool checkInside(Polygon q, Polygon p) {
+    auto bb = q.bbox();
+    std::vector<Point> points = {
+        Point(bb.xmin(), bb.ymin()), Point(bb.xmax(), bb.ymin()),
+        Point(bb.xmax(), bb.ymax()), Point(bb.xmin(), bb.ymax())};
+
+    for (auto point : points) {
+      if (!checkInside(point, p)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Polygon centrate(Polygon p, Point origin) {
+    auto c = getCenter(p);
+    auto dx = origin.x() - c.x();
+    auto dy = origin.y() - c.y();
+    Polygon t;
+    for (auto point : p.container()) {
+      t.push_back(Point(point.x() + dx, point.y() + dy));
+    }
+    return t;
+  }
+
+  Polygon scale(Polygon p, float mod) {
+    Polygon t;
+    for (auto point : p.container()) {
+      t.push_back(Point(point.x() * mod, point.y() * mod));
+    }
+    return t;
+  }
+
+  Polygon translate(Polygon p, Point origin) {
+    Polygon t;
+    for (auto point : p.container()) {
+      t.push_back(Point(point.x() + origin.x(), point.y() + origin.y()));
+    }
+    return t;
+  }
+
+  Polygon randomPolygon(int c, float origin = 5) {
+    Polygon p;
+
+    CGAL::random_convex_set_2(c, std::back_inserter(p),
+                              Point_generator(origin));
+    return p;
+  }
+
   Polygon randomQuad(float dx = 0, float dy = 0) {
     auto w = gen->R(2.f, 10.f);
     auto h = gen->R(2.f, 10.f);
@@ -50,10 +117,8 @@ public:
     Polygon d;
 
     for (auto point : p.container()) {
-      d.push_back(Point(
-                    abs(point.x() + gen->R(min, max)),
-                    abs(point.y() + gen->R(min, max))
-                  ));
+      d.push_back(Point(abs(point.x() + gen->R(min, max)),
+                        abs(point.y() + gen->R(min, max))));
     }
 
     return d;
@@ -65,15 +130,34 @@ public:
     auto dy = p.bbox().ymin();
 
     for (auto point : p.container()) {
-      d.push_back(Point(
-                    point.x() - dx,
-                    point.y() - dy
-                  ));
+      d.push_back(Point(point.x() - dx, point.y() - dy));
     }
 
     return d;
+  }
 
+  Point rotate(Point p, Point origin, float angle) {
+    auto tx = p.x() - origin.x();
+    auto ty = p.y() - origin.y();
+    auto rx = tx * cos(angle) - ty * sin(angle);
+    auto ry = tx * sin(angle) + ty * cos(angle);
+    return Point(rx + origin.x(), ry + origin.y());
+  }
+
+  Polygon rotate(Polygon p, Point origin, float angle) {
+    Polygon d;
+    for (auto point : p.container()) {
+      d.push_back(rotate(point, origin, angle));
     }
+    return d;
+  }
+
+  Point getCenter(Polygon polygon) {
+    return Point(polygon.bbox().xmin() +
+                     (polygon.bbox().xmax() - polygon.bbox().xmin()) / 2,
+                 polygon.bbox().ymin() +
+                     (polygon.bbox().ymax() - polygon.bbox().ymin()) / 2);
+  }
 
   Building randomBuilding(int mc = 5) {
     Building building;
@@ -92,16 +176,36 @@ public:
       }
     }
     // q = distort(q, -1.5, 1.5);
-    building.polygon = Polygon_with_holes(align(q));
+    q = align(q);
+    q = rotate(q, getCenter(q), gen->R(0, 180));
+    building.polygon = Polygon_with_holes(q);
+    building.center = getCenter(q);
 
-    building.center = Point(
-        building.polygon.bbox().xmin() +
-            (building.polygon.bbox().xmax() - building.polygon.bbox().xmin()) /
-                2,
-        building.polygon.bbox().ymin() +
-            (building.polygon.bbox().ymax() - building.polygon.bbox().ymin()) /
-                2);
+    auto plot = getPlot(q);
+    auto a = q.area();
+    plot = getPlot(q);
+    building.plot = plot;
     return building;
+  }
+
+  Polygon getPlot(Polygon q) {
+    auto a = q.area();
+    auto c = getCenter(q);
+    auto plot = centrate(randomPolygon(gen->R(4, 6)), c);
+
+    auto inside = checkInside(q, plot);
+    auto n = 0;
+    while (!inside) {
+      if (plot.area() > a * 7) {
+        plot = centrate(randomPolygon(gen->R(4, 7)), c);
+      } else {
+        plot = centrate(scale(plot, 1.1), c);
+      }
+      inside = checkInside(q, plot);
+      n++;
+    }
+    // fmt::print("Plot iterations: {}\n", n);
+    return plot;
   }
 };
 } // namespace CityGen

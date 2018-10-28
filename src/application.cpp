@@ -8,8 +8,10 @@
 
 Application::Application(std::string app_name, std::string version)
     : APP_NAME(app_name), VERSION(version) {
-  sf::ContextSettings settings;
-  settings.antialiasingLevel = 8;
+
+  auto aa = sf::RenderTexture::getMaximumAntialiasingLevel();
+  log.info(fmt::format("Max AA: {}", aa));
+  settings = sf::ContextSettings(0, 0, aa);
   ImGui::CreateContext();
 
   ImGui::StyleColorsDark();
@@ -19,9 +21,10 @@ Application::Application(std::string app_name, std::string version)
   window = new sf::RenderWindow(sf::VideoMode(1600, 900), APP_NAME,
                                 sf::Style::Default, settings);
   window->setVerticalSyncEnabled(true);
-  window->setFramerateLimit(60);
+  // window->setFramerateLimit(30);
   ImGui::SFML::Init(*window);
   fixed = window->getView();
+  fixed.setCenter(2400/2, 1800/2);
 
   gen = std::make_shared<R::Generator>();
   cityGenerator = std::make_shared<CityGen::Generator>(gen->seed);
@@ -60,11 +63,11 @@ void Application::processEvent(sf::Event event) {
       break;
     case sf::Keyboard::K:
       damaged = true;
-      rotation -= 5;
+      // rotation -= 5;
       break;
     case sf::Keyboard::L:
       damaged = true;
-      rotation += 5;
+      // rotation += 5;
       break;
     case sf::Keyboard::R:
       gen->updateSeed();
@@ -142,23 +145,30 @@ void Application::drawMinimap(sf::Sprite map) {
                                  map.getTexture()->getSize().x,
                                  -map.getTexture()->getSize().y));
   ImGui::Image(map);
-  // ImGui::SliderInt("Count", &count, 1, 200);
-  // ImGui::SliderFloat("Size", &size, 4.f, 200.f);
   ImGui::Text("\n");
-  ImGui::SliderFloat("Zoom", &scale, 0.05f, 3.f);
+  if (ImGui::SliderFloat("Zoom", &scale, 0.05f, 3.f) /*||
+      ImGui::SliderFloat("Rotation", &rotation, 0.f, 360.f)*/) {
+    damaged = true;
+  }
 
   ImGui::End();
 }
 
 std::shared_ptr<sf::RenderTexture> Application::drawMap() {
+
   auto tex = std::make_shared<sf::RenderTexture>();
   tex->setSmooth(true);
-  tex->create(2400 * scale, 1800 * scale);
+  tex->create(2400 * scale, 1800 * scale, settings);
 
-  auto bgColor = sf::Color(23, 23, 23);
+  auto bgColor = utils::colorByName("light green");
   tex->clear(bgColor);
   drawableMap->setScale(scale);
+  drawableMap->setOrigin(
+      sf::Vector2f(tex->getSize().x / 2, tex->getSize().y / 2));
+  drawableMap->setRotation(rotation);
+  drawableMap->update();
   tex->draw(*drawableMap);
+  tex->display();
 
   return tex;
 }
@@ -166,6 +176,7 @@ std::shared_ptr<sf::RenderTexture> Application::drawMap() {
 int Application::serve() {
   log.info("serve");
   sf::Clock deltaClock;
+  auto bgColor = utils::colorByName("light green");
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
@@ -174,7 +185,6 @@ int Application::serve() {
     }
 
     window->setView(fixed);
-    auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
 
     if (damaged) {
@@ -182,47 +192,46 @@ int Application::serve() {
       damaged = false;
     }
     auto texture = cache;
-    texture->display();
     sf::Sprite sprite(texture->getTexture());
-    //TODO: rotate from center
-    sprite.setOrigin(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
-    sprite.setRotation(rotation);
-    sprite.move(sf::Vector2f(texture->getSize().x/2, texture->getSize().y/2));
-    // sprite.setOrigin(sf::Vector2f(0, 0));
     window->draw(sprite);
 
     sf::RenderTexture mTexture;
-    mTexture.create(texture->getSize().x, texture->getSize().y);
+    mTexture.setSmooth(true);
+    mTexture.create(texture->getSize().x, texture->getSize().y, settings);
 
     mTexture.clear(bgColor);
     sf::Sprite oSprite(texture->getTexture());
+    // oSprite.setOrigin(texture->getSize().x/2, texture->getSize().y/2);
+    // oSprite.move(texture->getSize().x/2, texture->getSize().y/2);
+    // oSprite.setRotation(-rotation);
     mTexture.draw(oSprite);
 
     sf::RectangleShape frame;
     int t = 20;
-    frame.setPosition((fixed.getCenter().x - window->getSize().x / 2),
-                      (fixed.getCenter().y - window->getSize().y / 2));
     frame.setSize(
         sf::Vector2f(fixed.getViewport().width * window->getSize().x,
                      fixed.getViewport().height * window->getSize().y));
     frame.setFillColor(sf::Color::Transparent);
     frame.setOutlineThickness(t);
     frame.setOutlineColor(sf::Color(200, 200, 200));
-    frame.setOrigin(sf::Vector2f(frame.getSize().x/2, frame.getSize().y/2));
-    frame.setRotation(-rotation);
-    frame.move(sf::Vector2f(frame.getSize().x/2, frame.getSize().y/2));
-    // frame.setOrigin(sf::Vector2f(0, 0));
+
+    frame.setPosition(
+      fixed.getCenter().x - frame.getSize().x / 2,
+      fixed.getCenter().y - frame.getSize().y / 2);
+    // frame.setOrigin(sf::Vector2f(frame.getSize().x / 2, frame.getSize().y / 2));
+    // frame.setRotation(-rotation);
     mTexture.draw(frame);
     mTexture.display();
     sf::Sprite mSprite(mTexture.getTexture());
 
     mSprite.setScale(480.f / mTexture.getSize().x,
                      360.f / mTexture.getSize().y);
-    // sprite.setOrigin(sf::Vector2f(mTexture.getSize().x/2, mTexture.getSize().y/2));
-    // mSprite.setRotation(rotation);
+    // sprite.setOrigin(sf::Vector2f(mTexture.getSize().x/2,
+    // mTexture.getSize().y/2)); mSprite.setRotation(rotation);
     ImGui::SFML::Update(*window, deltaClock.restart());
     drawMinimap(mSprite);
     ImGui::SFML::Render(*window);
+
     window->display();
   }
   log.info("shutdown");

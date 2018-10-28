@@ -4,10 +4,12 @@ namespace CityGen {
 
 std::shared_ptr<Map> Generator::createMap() {
   auto map = std::make_shared<Map>();
-  auto padding = 15.f;
+  auto padding = 30.f;
 
-  for (auto i = 0; i < 24; i++) {
-    for (auto n = 0; n < 16; n++) {
+  auto w = 10; //24
+  auto h = 8; //16
+  for (auto i = 0; i < w; i++) {
+    for (auto n = 0; n < h; n++) {
 
       // auto padding = gen->R(15, 20);
 
