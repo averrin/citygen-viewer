@@ -27,8 +27,8 @@ Application::Application(std::string app_name, std::string version)
   fixed.setCenter(2400 / 2, 1800 / 2);
 
   gen = std::make_shared<R::Generator>();
-  cityGenerator = std::make_shared<CityGen::Generator>(gen->seed);
-  map = cityGenerator->createMap();
+  cityGenerator = std::make_shared<CityGen::Generator>(gen);
+  map = cityGenerator->createMap(800, 600);
   drawableMap = std::make_shared<DrawableMap>(map);
 
   window->resetGLStates();
@@ -71,7 +71,7 @@ void Application::processEvent(sf::Event event) {
       break;
     case sf::Keyboard::R:
       gen->updateSeed();
-      map = cityGenerator->createMap();
+      map = cityGenerator->createMap(800, 600);
       drawableMap = std::make_shared<DrawableMap>(map);
       damaged = true;
       break;

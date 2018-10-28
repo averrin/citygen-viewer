@@ -2,45 +2,28 @@
 
 namespace CityGen {
 
-std::shared_ptr<Map> Generator::createMap() {
+std::shared_ptr<Map> Generator::createMap(float width, float height) {
   auto map = std::make_shared<Map>();
-  auto padding = 30.f;
 
-  auto w = 10; //24
-  auto h = 8; //16
-  for (auto i = 0; i < w; i++) {
-    for (auto n = 0; n < h; n++) {
+  auto city = Area();
+  city.type = AreaType::CITY;
+  city.polygon = Polygon_with_holes(
+    Shapes::centrate(
+      Shapes::scale(
+        Shapes::randomPolygon(
+          gen->R(7, 12)
+        ),
+      30),
+    Point(width / 2, height / 2)));
+  map->areas.push_back(city);
 
-      // auto padding = gen->R(15, 20);
+  auto castle = buildingGenerator->randomBuilding(gen->R(1, 5));
+  castle.x = width / 2;
+  castle.y = height / 2;
+  // b.center = Point(b.center.x() + padding * (i + 1), b.center.y() + padding *
+  // (n + 1));
+  map->buildings.push_back(castle);
 
-      auto b = buildingGenerator->randomBuilding(gen->R(1, 5));
-      b.x = padding * (i + 1);
-      b.y = padding * (n + 1);
-      b.center = Point(b.center.x() + padding * (i + 1), b.center.y() + padding * (n + 1));
-      map->buildings.push_back(b);
-
-      /*
-      auto polygon = toShape(b);
-      polygon.setScale(sf::Vector2f(localScale, localScale));
-      polygon.setFillColor(colorByName("ivory"));
-      // polygon.setFillColor(sf::Color::Transparent);
-      // polygon.setOutlineColor(sf::Color::Red);
-      // polygon.setOutlineThickness(0.2);
-      polygon.setPosition(sf::Vector2f(padding * (i + 1), padding * (n + 1)));
-      polygon.setRotation(gen->R(0, 359));
-      tex->draw(polygon);
-*/
-      // for (auto point : b.outer_boundary().container()) {
-      //   sf::CircleShape site(2.f);
-      //   site.setFillColor(sf::Color::Green);
-      //   site.setPosition(sf::Vector2f(CGAL::to_double(point.x()) * localScale
-      //   + padding * (i + 1) - 1,
-      //                                 CGAL::to_double(point.y()) * localScale
-      //                                 + padding * (n + 1) - 1));
-      //   tex->draw(site);
-      // }
-    }
-  }
   return map;
 }
 } // namespace CityGen

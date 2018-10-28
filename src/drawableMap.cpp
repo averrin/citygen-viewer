@@ -6,15 +6,23 @@
 DrawableMap::DrawableMap(std::shared_ptr<CityGen::Map> m) : map(m) { update(); }
 
 void DrawableMap::update() {
-    if (!damaged) {
-        return;
-    }
+  if (!damaged) {
+    return;
+  }
   shapes.clear();
-  auto localScale = 6.f;
+  auto localScale = 3.f;
   auto mod = localScale * scale;
+
+  for (auto a : map->areas) {
+    auto area = std::make_shared<thor::ConcaveShape>(utils::toShape(a.polygon));
+    area->setScale(sf::Vector2f(mod, mod));
+    area->setFillColor(utils::colorByName("light grey"));
+    area->setPosition(sf::Vector2f(a.x * mod, a.y * mod));
+    shapes.push_back(area);
+  }
+
   for (auto b : map->buildings) {
-    auto plot =
-        std::make_shared<thor::ConcaveShape>(utils::toShape(b.plot));
+    auto plot = std::make_shared<thor::ConcaveShape>(utils::toShape(b.plot));
     plot->setScale(sf::Vector2f(mod, mod));
     // plot->setFillColor(utils::colorByName("light green"));
     plot->setFillColor(sf::Color::Transparent);
@@ -24,13 +32,13 @@ void DrawableMap::update() {
     shapes.push_back(plot);
     auto r = mod;
     for (auto point : b.plot.container()) {
-        auto site = std::make_shared<sf::CircleShape>(r);
-        site->setFillColor(utils::colorByName("dim gray"));
-        site->setPosition(sf::Vector2f(
-                             CGAL::to_double(b.x + point.x()) * mod - r/2 - 2,
-                             CGAL::to_double(b.y + point.y()) * mod - r/2 - 2));
+      auto site = std::make_shared<sf::CircleShape>(r);
+      site->setFillColor(utils::colorByName("dim gray"));
+      site->setPosition(
+          sf::Vector2f(CGAL::to_double(b.x + point.x()) * mod - r / 2 - 2,
+                       CGAL::to_double(b.y + point.y()) * mod - r / 2 - 2));
 
-    shapes.push_back(site);
+      shapes.push_back(site);
     }
 
     auto polygon =
@@ -67,10 +75,9 @@ void DrawableMap::update() {
     bPolygon->setOutlineColor(sf::Color::Red);
     bPolygon->setOutlineThickness(0.2);
     // shapes.push_back(bPolygon);
-
   }
 
-    damaged = false;
+  damaged = false;
 }
 
 void DrawableMap::draw(sf::RenderTarget &target,

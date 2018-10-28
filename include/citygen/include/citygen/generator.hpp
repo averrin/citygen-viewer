@@ -4,22 +4,20 @@
 
 #include <librandom/random.hpp>
 
+#include <citygen/common.hpp>
 #include <citygen/building.hpp>
 #include <citygen/map.hpp>
 
 namespace CityGen {
 
-class Generator {
+class Generator : public WithRandomGenerator {
   std::shared_ptr<CityGen::BuildingGenerator> buildingGenerator;
-  std::shared_ptr<R::Generator> gen;
 
 public:
-  Generator(int seed) {
-    gen = std::make_shared<R::Generator>();
-    gen->setSeed(seed);
-    buildingGenerator = std::make_shared<CityGen::BuildingGenerator>(gen->seed);
+  Generator(std::shared_ptr<R::Generator> g) : WithRandomGenerator(g) {
+    buildingGenerator = std::make_shared<CityGen::BuildingGenerator>(gen);
   }
-  std::shared_ptr<CityGen::Map> createMap();
+  std::shared_ptr<CityGen::Map> createMap(float width, float height);
 };
 
 } // namespace CityGen
