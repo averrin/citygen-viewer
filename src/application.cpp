@@ -21,10 +21,10 @@ Application::Application(std::string app_name, std::string version)
   window = new sf::RenderWindow(sf::VideoMode(1600, 900), APP_NAME,
                                 sf::Style::Default, settings);
   window->setVerticalSyncEnabled(true);
-  // window->setFramerateLimit(30);
+  // window->setFramerateLimit(60);
   ImGui::SFML::Init(*window);
   fixed = window->getView();
-  fixed.setCenter(2400/2, 1800/2);
+  fixed.setCenter(2400 / 2, 1800 / 2);
 
   gen = std::make_shared<R::Generator>();
   cityGenerator = std::make_shared<CityGen::Generator>(gen->seed);
@@ -177,6 +177,15 @@ int Application::serve() {
   log.info("serve");
   sf::Clock deltaClock;
   auto bgColor = utils::colorByName("light green");
+  overview = std::make_shared<sf::RenderTexture>();
+  overview->setSmooth(true);
+
+  sf::RectangleShape frame;
+  int t = 20;
+  frame.setFillColor(sf::Color::Transparent);
+  frame.setOutlineThickness(t);
+  frame.setOutlineColor(sf::Color(200, 200, 200));
+
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
@@ -195,41 +204,42 @@ int Application::serve() {
     sf::Sprite sprite(texture->getTexture());
     window->draw(sprite);
 
-    sf::RenderTexture mTexture;
-    mTexture.setSmooth(true);
-    mTexture.create(texture->getSize().x, texture->getSize().y, settings);
+    overview->create(texture->getSize().x, texture->getSize().y);
 
-    mTexture.clear(bgColor);
-    sf::Sprite oSprite(texture->getTexture());
+    // mTexture.clear(bgColor);
+    // sf::Sprite oSprite(texture->getTexture());
     // oSprite.setOrigin(texture->getSize().x/2, texture->getSize().y/2);
     // oSprite.move(texture->getSize().x/2, texture->getSize().y/2);
     // oSprite.setRotation(-rotation);
-    mTexture.draw(oSprite);
 
-    sf::RectangleShape frame;
-    int t = 20;
+    overview->draw(sprite);
+
     frame.setSize(
         sf::Vector2f(fixed.getViewport().width * window->getSize().x,
                      fixed.getViewport().height * window->getSize().y));
-    frame.setFillColor(sf::Color::Transparent);
-    frame.setOutlineThickness(t);
-    frame.setOutlineColor(sf::Color(200, 200, 200));
 
-    frame.setPosition(
-      fixed.getCenter().x - frame.getSize().x / 2,
-      fixed.getCenter().y - frame.getSize().y / 2);
-    // frame.setOrigin(sf::Vector2f(frame.getSize().x / 2, frame.getSize().y / 2));
-    // frame.setRotation(-rotation);
-    mTexture.draw(frame);
-    mTexture.display();
-    sf::Sprite mSprite(mTexture.getTexture());
+    frame.setPosition(fixed.getCenter().x - frame.getSize().x / 2,
+                      fixed.getCenter().y - frame.getSize().y / 2);
+    // frame.setOrigin(sf::Vector2f(frame.getSize().x / 2, frame.getSize().y /
+    // 2)); frame.setRotation(-rotation);
+    overview->draw(frame);
+    overview->display();
+    sf::Sprite mSprite(overview->getTexture());
 
-    mSprite.setScale(480.f / mTexture.getSize().x,
-                     360.f / mTexture.getSize().y);
+    mSprite.setScale(480.f / overview->getSize().x,
+                     360.f / overview->getSize().y);
+
     // sprite.setOrigin(sf::Vector2f(mTexture.getSize().x/2,
     // mTexture.getSize().y/2)); mSprite.setRotation(rotation);
     ImGui::SFML::Update(*window, deltaClock.restart());
     drawMinimap(mSprite);
+
+    ImGui::Begin("info");
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)\n",
+                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+    ImGui::End();
     ImGui::SFML::Render(*window);
 
     window->display();

@@ -35,6 +35,7 @@ public:
   float rotation = 0.f;
   bool damaged = true;
   std::shared_ptr<sf::RenderTexture> cache;
+  std::shared_ptr<sf::RenderTexture> overview;
   std::shared_ptr<R::Generator> gen;
   std::shared_ptr<CityGen::Generator> cityGenerator;
   std::shared_ptr<CityGen::Map> map;

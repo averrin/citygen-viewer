@@ -11,11 +11,13 @@ class DrawableMap : public sf::Drawable {
   float rotation;
   sf::Vector2f origin;
   std::shared_ptr<CityGen::Map> map;
+    bool damaged = true;
 
 public:
   std::vector<std::shared_ptr<sf::Drawable>> shapes;
   DrawableMap(std::shared_ptr<CityGen::Map>);
   void setScale(float s) {
+    damaged = s != scale;
     scale = s;
   }
   void setRotation(float r) {

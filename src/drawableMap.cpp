@@ -6,6 +6,9 @@
 DrawableMap::DrawableMap(std::shared_ptr<CityGen::Map> m) : map(m) { update(); }
 
 void DrawableMap::update() {
+    if (!damaged) {
+        return;
+    }
   shapes.clear();
   auto localScale = 6.f;
   auto mod = localScale * scale;
@@ -66,6 +69,8 @@ void DrawableMap::update() {
     // shapes.push_back(bPolygon);
 
   }
+
+    damaged = false;
 }
 
 void DrawableMap::draw(sf::RenderTarget &target,
