@@ -37,7 +37,7 @@ public:
     return true;
   }
 
-  static Polygon centrate(Polygon p, Point origin) {
+  static Polygon center(Polygon p, Point origin) {
     auto c = getCenter(p);
     auto dx = origin.x() - c.x();
     auto dy = origin.y() - c.y();

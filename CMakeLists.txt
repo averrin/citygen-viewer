@@ -73,7 +73,8 @@ add_to_cached_list( CGAL_EXECUTABLE_TARGETS citygen-viewer )
 
 
 target_link_libraries(${EXE_NAME} PRIVATE
-  fmt::fmt fmt::fmt-header-only
+  fmt::fmt
+  # fmt::fmt-header-only
   ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES}
   thor
   X11 FLAC UDev

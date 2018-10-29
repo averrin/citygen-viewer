@@ -5,41 +5,62 @@
 
 DrawableMap::DrawableMap(std::shared_ptr<CityGen::Map> m) : map(m) { update(); }
 
+std::vector<std::shared_ptr<sf::Drawable>>
+DrawableMap::wall(CityGen::Primitive p, Polygon_with_holes polygon) {
+  return wall(p, polygon.outer_boundary());
+  }
+
+std::vector<std::shared_ptr<sf::Drawable>>
+DrawableMap::wall(CityGen::Primitive p, Polygon polygon) {
+
+  auto mod = localScale * scale;
+  std::vector<std::shared_ptr<sf::Drawable>> result;
+
+  auto plot = std::make_shared<thor::ConcaveShape>(utils::toShape(polygon));
+  plot->setScale(sf::Vector2f(mod, mod));
+  // plot->setFillColor(utils::colorByName("light green"));
+  plot->setFillColor(sf::Color::Transparent);
+  plot->setOutlineColor(utils::colorByName("dim gray"));
+  plot->setOutlineThickness(1);
+  plot->setPosition(sf::Vector2f(p.x * mod, p.y * mod));
+  result.push_back(plot);
+  auto r = mod;
+  for (auto point : polygon.container()) {
+    auto site = std::make_shared<sf::CircleShape>(r);
+    site->setFillColor(utils::colorByName("dim gray"));
+    site->setPosition(
+        sf::Vector2f(CGAL::to_double(p.x + point.x()) * mod - r / 2 - 2,
+                     CGAL::to_double(p.y + point.y()) * mod - r / 2 - 2));
+
+    result.push_back(site);
+  }
+  return result;
+}
+
 void DrawableMap::update() {
   if (!damaged) {
     return;
   }
   shapes.clear();
-  auto localScale = 3.f;
   auto mod = localScale * scale;
 
   for (auto a : map->areas) {
-    auto area = std::make_shared<thor::ConcaveShape>(utils::toShape(a.polygon));
-    area->setScale(sf::Vector2f(mod, mod));
-    area->setFillColor(utils::colorByName("light grey"));
-    area->setPosition(sf::Vector2f(a.x * mod, a.y * mod));
-    shapes.push_back(area);
+    if (a.type == CityGen::AreaType::WALLED) {
+      auto aw = wall(a, a.polygon);
+      shapes.insert(shapes.end(), aw.begin(), aw.end());
+    } else {
+      auto area =
+          std::make_shared<thor::ConcaveShape>(utils::toShape(a.polygon));
+      area->setScale(sf::Vector2f(mod, mod));
+      area->setFillColor(utils::colorByName("light grey"));
+      area->setPosition(sf::Vector2f(a.x * mod, a.y * mod));
+      shapes.push_back(area);
+    }
   }
 
   for (auto b : map->buildings) {
-    auto plot = std::make_shared<thor::ConcaveShape>(utils::toShape(b.plot));
-    plot->setScale(sf::Vector2f(mod, mod));
-    // plot->setFillColor(utils::colorByName("light green"));
-    plot->setFillColor(sf::Color::Transparent);
-    plot->setOutlineColor(utils::colorByName("dim gray"));
-    plot->setOutlineThickness(1);
-    plot->setPosition(sf::Vector2f(b.x * mod, b.y * mod));
-    shapes.push_back(plot);
-    auto r = mod;
-    for (auto point : b.plot.container()) {
-      auto site = std::make_shared<sf::CircleShape>(r);
-      site->setFillColor(utils::colorByName("dim gray"));
-      site->setPosition(
-          sf::Vector2f(CGAL::to_double(b.x + point.x()) * mod - r / 2 - 2,
-                       CGAL::to_double(b.y + point.y()) * mod - r / 2 - 2));
-
-      shapes.push_back(site);
-    }
+    auto bw = wall(b, b.plot);
+    shapes.insert(shapes.end(), bw.begin(), bw.end());
 
     auto polygon =
         std::make_shared<thor::ConcaveShape>(utils::toShape(b.polygon));

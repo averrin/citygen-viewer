@@ -6,9 +6,9 @@ std::shared_ptr<Map> Generator::createMap(float width, float height) {
   auto map = std::make_shared<Map>();
 
   auto city = Area();
-  city.type = AreaType::CITY;
+  city.type = AreaType::WALLED;
   city.polygon = Polygon_with_holes(
-    Shapes::centrate(
+    Shapes::center(
       Shapes::scale(
         shapes->randomPolygon(
           gen->R(7, 12)

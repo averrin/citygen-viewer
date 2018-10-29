@@ -56,15 +56,15 @@ public:
   Polygon getPlot(Polygon q) {
     auto a = q.area();
     auto c = Shapes::getCenter(q);
-    auto plot = Shapes::centrate(shapes->randomPolygon(gen->R(4, 6)), c);
+    auto plot = Shapes::center(shapes->randomPolygon(gen->R(4, 6)), c);
 
     auto inside = Shapes::checkInside(q, plot);
     auto n = 0;
     while (!inside) {
       if (plot.area() > a * 7) {
-        plot = Shapes::centrate(shapes->randomPolygon(gen->R(4, 7)), c);
+        plot = Shapes::center(shapes->randomPolygon(gen->R(4, 7)), c);
       } else {
-        plot = Shapes::centrate(Shapes::scale(plot, 1.1), c);
+        plot = Shapes::center(Shapes::scale(plot, 1.1), c);
       }
       inside = Shapes::checkInside(q, plot);
       n++;
